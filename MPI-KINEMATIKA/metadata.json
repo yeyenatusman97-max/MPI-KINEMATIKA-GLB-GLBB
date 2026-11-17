@@ -1,0 +1,6 @@
+{
+  "name": "Newton Physics Learning Hub",
+  "description": "Media Pembelajaran Interaktif Fisika: Explore, Experiment, Challenge, Achieve dengan Simulasi Virtual Lab Hukum Newton, Kuis Interaktif, Game Edukasi, dan Evaluasi Pembelajaran.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

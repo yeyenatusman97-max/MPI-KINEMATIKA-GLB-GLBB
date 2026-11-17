@@ -1,0 +1,760 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user role and school NPSN binding for authenticated user.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the user."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["guru", "murid"],
+          "description": "Assigned role in the learning platform."
+        },
+        "npsn": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 20,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "School NPSN identifier."
+        },
+        "accountId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Deterministic app account ID."
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Teacher name or student display name."
+        },
+        "className": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Student grade/class name."
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "User authentication email stored strictly in private owner-only profile."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp."
+        }
+      },
+      "required": ["uid", "role", "npsn", "accountId", "displayName", "className", "createdAt", "updatedAt"]
+    },
+    "School": {
+      "title": "School",
+      "description": "School container indexed by NPSN linking teacher and student workspaces.",
+      "type": "object",
+      "properties": {
+        "npsn": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 20,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "School NPSN identifier."
+        },
+        "schoolName": {
+          "type": "string",
+          "maxLength": 150,
+          "description": "Name of the school."
+        },
+        "ownerUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID of the creator."
+        },
+        "teacherUids": {
+          "type": "array",
+          "description": "Bounded list of up to 10 verified teacher UIDs for this school."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp."
+        }
+      },
+      "required": ["npsn", "schoolName", "ownerUid", "teacherUids", "createdAt", "updatedAt"]
+    },
+    "SchoolMember": {
+      "title": "SchoolMember",
+      "description": "Verified membership record inside a school keyed by member UID.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the member."
+        },
+        "npsn": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 20,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "School NPSN identifier."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["guru", "murid"],
+          "description": "Role of this member within the school."
+        },
+        "accountId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "App-level account ID."
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Display name."
+        },
+        "className": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Student class level."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp."
+        }
+      },
+      "required": ["uid", "npsn", "role", "accountId", "displayName", "className", "createdAt", "updatedAt"]
+    },
+    "LKPDSubmission": {
+      "title": "LKPDSubmission",
+      "description": "Student-submitted LKPD experiment data, answers, and two-way teacher feedback.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Submission document ID."
+        },
+        "npsn": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 20,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "School NPSN identifier."
+        },
+        "studentUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the submitting student."
+        },
+        "studentAccountId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Student app account ID."
+        },
+        "allowedTeacherUids": {
+          "type": "array",
+          "description": "Bounded list of up to 10 teacher UIDs allowed to list/read/review."
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "LKPD title."
+        },
+        "groupName": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Student group name."
+        },
+        "groupLeader": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Group leader name."
+        },
+        "members": {
+          "type": "string",
+          "maxLength": 600,
+          "description": "Group members list."
+        },
+        "className": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Student class."
+        },
+        "school": {
+          "type": "string",
+          "maxLength": 150,
+          "description": "School name."
+        },
+        "date": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "Submission date string."
+        },
+        "labMode": {
+          "type": "string",
+          "enum": ["GLB", "GLBB"],
+          "description": "Active physics simulation mode."
+        },
+        "glbRows": {
+          "type": "array",
+          "description": "GLB experiment telemetry rows (max 50)."
+        },
+        "glbbAccelRows": {
+          "type": "array",
+          "description": "GLBB accelerated experiment rows (max 50)."
+        },
+        "glbbDecelRows": {
+          "type": "array",
+          "description": "GLBB decelerated experiment rows (max 50)."
+        },
+        "ans1": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Analysis question 1 answer."
+        },
+        "ans2": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Analysis question 2 answer."
+        },
+        "ans4": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Analysis question 3 answer."
+        },
+        "ans5": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Analysis question 4 answer."
+        },
+        "ans6": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Analysis question 5 answer."
+        },
+        "conclusion": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Practicum conclusion."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["submitted", "finalized"],
+          "description": "Submission lifecycle status."
+        },
+        "feedbackStatus": {
+          "type": "string",
+          "enum": ["pending", "reviewed"],
+          "description": "Teacher feedback status."
+        },
+        "teacherFeedback": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Written feedback from teacher."
+        },
+        "feedbackBy": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Name of teacher providing feedback."
+        },
+        "feedbackByUid": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "UID of teacher providing feedback."
+        },
+        "feedbackAt": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "ISO timestamp of teacher feedback."
+        },
+        "submittedAt": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "ISO timestamp of submission."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp."
+        }
+      },
+      "required": [
+        "id",
+        "npsn",
+        "studentUid",
+        "studentAccountId",
+        "allowedTeacherUids",
+        "title",
+        "groupName",
+        "groupLeader",
+        "members",
+        "className",
+        "school",
+        "date",
+        "labMode",
+        "glbRows",
+        "glbbAccelRows",
+        "glbbDecelRows",
+        "ans1",
+        "ans2",
+        "ans4",
+        "ans5",
+        "ans6",
+        "conclusion",
+        "status",
+        "feedbackStatus",
+        "teacherFeedback",
+        "feedbackBy",
+        "feedbackByUid",
+        "feedbackAt",
+        "submittedAt",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "QuizSubmission": {
+      "title": "QuizSubmission",
+      "description": "Student quiz attempt record synced to the teacher account via school NPSN.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Quiz result ID."
+        },
+        "npsn": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 20,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "School NPSN identifier."
+        },
+        "studentUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the student."
+        },
+        "studentAccountId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Student app account ID."
+        },
+        "studentName": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Student display name."
+        },
+        "className": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Student class."
+        },
+        "allowedTeacherUids": {
+          "type": "array",
+          "description": "Bounded list of up to 10 teacher UIDs."
+        },
+        "score": {
+          "type": "number",
+          "description": "Quiz score between 0 and 100."
+        },
+        "totalQuestions": {
+          "type": "number",
+          "description": "Total number of questions."
+        },
+        "timeSpentSeconds": {
+          "type": "number",
+          "description": "Time spent in seconds."
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Assessment category."
+        },
+        "submittedAt": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "ISO timestamp of completion."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        }
+      },
+      "required": [
+        "id",
+        "npsn",
+        "studentUid",
+        "studentAccountId",
+        "studentName",
+        "className",
+        "allowedTeacherUids",
+        "score",
+        "totalQuestions",
+        "timeSpentSeconds",
+        "category",
+        "submittedAt",
+        "createdAt"
+      ]
+    },
+    "StudentReport": {
+      "title": "StudentReport",
+      "description": "Aggregated student learning report card synced automatically to the school teacher view.",
+      "type": "object",
+      "properties": {
+        "accountId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Student app account ID."
+        },
+        "npsn": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 20,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "School NPSN identifier."
+        },
+        "studentUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the student."
+        },
+        "studentName": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Student display name."
+        },
+        "className": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Student class."
+        },
+        "schoolName": {
+          "type": "string",
+          "maxLength": 150,
+          "description": "School name."
+        },
+        "allowedTeacherUids": {
+          "type": "array",
+          "description": "Bounded list of up to 10 teacher UIDs."
+        },
+        "xp": {
+          "type": "number",
+          "description": "Total student XP."
+        },
+        "level": {
+          "type": "number",
+          "description": "Current level."
+        },
+        "lastQuizScore": {
+          "type": "number",
+          "description": "Latest quiz score."
+        },
+        "experimentsCount": {
+          "type": "number",
+          "description": "Completed experiment count."
+        },
+        "lkpdSubmittedCount": {
+          "type": "number",
+          "description": "Number of submitted LKPDs."
+        },
+        "badges": {
+          "type": "array",
+          "description": "Earned badge IDs (max 20)."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "archived"],
+          "description": "Report lifecycle status."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp."
+        }
+      },
+      "required": [
+        "accountId",
+        "npsn",
+        "studentUid",
+        "studentName",
+        "className",
+        "schoolName",
+        "allowedTeacherUids",
+        "xp",
+        "level",
+        "lastQuizScore",
+        "experimentsCount",
+        "lkpdSubmittedCount",
+        "badges",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "StudentReflection": {
+      "title": "StudentReflection",
+      "description": "Student learning reflection submitted from student account and synced to the teacher's Hasil Refleksi Murid view.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Reflection document ID."
+        },
+        "npsn": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 20,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "School NPSN identifier."
+        },
+        "studentUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the student."
+        },
+        "studentAccountId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Student app account ID."
+        },
+        "studentName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Student display name."
+        },
+        "className": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Student class."
+        },
+        "allowedTeacherUids": {
+          "type": "array",
+          "description": "Bounded list of up to 10 teacher UIDs."
+        },
+        "date": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Formatted Indonesian submission date."
+        },
+        "ratingGLB": {
+          "type": "number",
+          "description": "Star rating (1-5) for GLB understanding."
+        },
+        "ratingGLBB": {
+          "type": "number",
+          "description": "Star rating (1-5) for GLBB understanding."
+        },
+        "ratingGraph": {
+          "type": "number",
+          "description": "Star rating (1-5) for graph analysis."
+        },
+        "ratingLab": {
+          "type": "number",
+          "description": "Star rating (1-5) for virtual lab & LKPD."
+        },
+        "mood": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Selected learning mood ID."
+        },
+        "interestingThing": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Qualitative reflection question 1 answer."
+        },
+        "challengingThing": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Qualitative reflection question 2 answer."
+        },
+        "labExperience": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Qualitative reflection question 3 answer."
+        },
+        "nextTarget": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Qualitative reflection question 4 answer."
+        },
+        "submittedAt": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "ISO timestamp of submission."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp."
+        }
+      },
+      "required": [
+        "id",
+        "npsn",
+        "studentUid",
+        "studentAccountId",
+        "studentName",
+        "className",
+        "allowedTeacherUids",
+        "date",
+        "ratingGLB",
+        "ratingGLBB",
+        "ratingGraph",
+        "ratingLab",
+        "mood",
+        "interestingThing",
+        "challengingThing",
+        "labExperience",
+        "nextTarget",
+        "submittedAt",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "LoginLookup": {
+      "title": "LoginLookup",
+      "description": "Keyed SHA-256 directory storing AES-256-GCM password-encrypted auth email for email-less cross-device login without exposing plaintext PII.",
+      "type": "object",
+      "properties": {
+        "lookupId": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[a-f0-9]+$",
+          "description": "SHA-256 digest of role, normalized name, and class."
+        },
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Owner Firebase Auth UID."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["guru", "murid"],
+          "description": "Immutable account role."
+        },
+        "cipherEmail": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 512,
+          "description": "Base64 AES-256-GCM ciphertext of auth email encrypted with user password."
+        },
+        "iv": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "description": "Base64 AES-GCM initialization vector."
+        },
+        "salt": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "description": "Base64 PBKDF2 salt."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp."
+        }
+      },
+      "required": ["lookupId", "uid", "role", "cipherEmail", "iv", "salt", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user role and NPSN profile owned strictly by the signed-in user."
+    },
+    "/schools/{npsn}": {
+      "schema": { "$ref": "#/entities/School" },
+      "description": "School workspace keyed by NPSN."
+    },
+    "/schools/{npsn}/members/{memberId}": {
+      "schema": { "$ref": "#/entities/SchoolMember" },
+      "description": "Verified teacher and student members inside a school."
+    },
+    "/schools/{npsn}/lkpdSubmissions/{submissionId}": {
+      "schema": { "$ref": "#/entities/LKPDSubmission" },
+      "description": "Student LKPD submissions and teacher feedback for the school."
+    },
+    "/schools/{npsn}/quizResults/{resultId}": {
+      "schema": { "$ref": "#/entities/QuizSubmission" },
+      "description": "Student quiz attempts synced to teachers in the school."
+    },
+    "/schools/{npsn}/studentReports/{accountId}": {
+      "schema": { "$ref": "#/entities/StudentReport" },
+      "description": "Student report cards synced automatically to the teacher dashboard."
+    },
+    "/schools/{npsn}/reflections/{reflectionId}": {
+      "schema": { "$ref": "#/entities/StudentReflection" },
+      "description": "Student reflections collected from student accounts and synced to teacher's Hasil Refleksi Murid."
+    },
+    "/loginLookup/{lookupId}": {
+      "schema": { "$ref": "#/entities/LoginLookup" },
+      "description": "Exact-key password-encrypted login lookup (no list access, no plaintext PII)."
+    }
+  }
+}

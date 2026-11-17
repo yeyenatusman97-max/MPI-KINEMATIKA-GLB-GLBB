@@ -1,0 +1,511 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net (Default-Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================================
+    // GLOBAL HARDENED PRIMITIVES
+    // =========================================================================
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && (
+        request.auth.token.email_verified == true ||
+        request.auth.token.firebase.sign_in_provider == 'password'
+      );
+    }
+
+    function isOwner(uid) {
+      return isVerifiedUser() && request.auth.uid == uid;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidNpsn(npsn) {
+      return npsn is string && npsn.size() >= 4 && npsn.size() <= 20 && npsn.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidLookupId(id) {
+      return id is string && id.size() == 64 && id.matches('^[a-f0-9]+$');
+    }
+
+    function schoolExists(npsn) {
+      return exists(/databases/$(database)/documents/schools/$(npsn));
+    }
+
+    function isSchoolMember(npsn) {
+      return isVerifiedUser() &&
+        exists(/databases/$(database)/documents/schools/$(npsn)/members/$(request.auth.uid));
+    }
+
+    function isSchoolTeacher(npsn) {
+      return isSchoolMember(npsn) &&
+        get(/databases/$(database)/documents/schools/$(npsn)/members/$(request.auth.uid)).data.role == 'guru';
+    }
+
+    // =========================================================================
+    // VALIDATION BLUEPRINTS
+    // =========================================================================
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'role', 'npsn', 'accountId', 'displayName', 'className', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'role', 'npsn', 'accountId', 'displayName', 'className', 'email', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid == request.auth.uid && data.uid == userId && isValidId(data.uid)
+        && data.role is string && data.role in ['guru', 'murid']
+        && isValidNpsn(data.npsn)
+        && isValidId(data.accountId)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.className is string && data.className.size() <= 60
+        && (!('email' in data) || (data.email is string && data.email.size() <= 160))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSchool(data, npsn) {
+      return data.keys().hasAll(['npsn', 'schoolName', 'ownerUid', 'teacherUids', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['npsn', 'schoolName', 'ownerUid', 'teacherUids', 'createdAt', 'updatedAt'])
+        && isValidNpsn(data.npsn) && data.npsn == npsn
+        && data.schoolName is string && data.schoolName.size() >= 1 && data.schoolName.size() <= 150
+        && isValidId(data.ownerUid)
+        && data.teacherUids is list && data.teacherUids.size() <= 10
+        && (data.teacherUids.size() == 0 || (data.teacherUids[0] is string && data.teacherUids[0].size() <= 128))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSchoolMember(data, npsn, memberId) {
+      return data.keys().hasAll(['uid', 'npsn', 'role', 'accountId', 'displayName', 'className', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'npsn', 'role', 'accountId', 'displayName', 'className', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid == request.auth.uid && data.uid == memberId && isValidId(data.uid)
+        && isValidNpsn(data.npsn) && data.npsn == npsn
+        && data.role is string && data.role in ['guru', 'murid']
+        && isValidId(data.accountId)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.className is string && data.className.size() <= 60
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLKPDSubmission(data, npsn, submissionId) {
+      return data.keys().hasAll([
+          'id', 'npsn', 'studentUid', 'studentAccountId', 'allowedTeacherUids',
+          'title', 'groupName', 'groupLeader', 'members', 'className', 'school', 'date', 'labMode',
+          'glbRows', 'glbbAccelRows', 'glbbDecelRows',
+          'ans1', 'ans2', 'ans4', 'ans5', 'ans6', 'conclusion',
+          'status', 'feedbackStatus', 'teacherFeedback', 'feedbackBy', 'feedbackByUid', 'feedbackAt',
+          'submittedAt', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'npsn', 'studentUid', 'studentAccountId', 'allowedTeacherUids',
+          'title', 'groupName', 'groupLeader', 'members', 'className', 'school', 'date', 'labMode',
+          'glbRows', 'glbbAccelRows', 'glbbDecelRows',
+          'ans1', 'ans2', 'ans4', 'ans5', 'ans6', 'conclusion',
+          'status', 'feedbackStatus', 'teacherFeedback', 'feedbackBy', 'feedbackByUid', 'feedbackAt',
+          'submittedAt', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id) && data.id == submissionId
+        && isValidNpsn(data.npsn) && data.npsn == npsn
+        && isValidId(data.studentUid)
+        && isValidId(data.studentAccountId)
+        && data.allowedTeacherUids is list && data.allowedTeacherUids.size() <= 10
+        && (data.allowedTeacherUids.size() == 0 || (data.allowedTeacherUids[0] is string && data.allowedTeacherUids[0].size() <= 128))
+        && data.title is string && data.title.size() <= 200
+        && data.groupName is string && data.groupName.size() <= 120
+        && data.groupLeader is string && data.groupLeader.size() <= 120
+        && data.members is string && data.members.size() <= 600
+        && data.className is string && data.className.size() <= 60
+        && data.school is string && data.school.size() <= 150
+        && data.date is string && data.date.size() <= 30
+        && data.labMode is string && data.labMode in ['GLB', 'GLBB']
+        && data.glbRows is list && data.glbRows.size() <= 50
+        && (data.glbRows.size() == 0 || data.glbRows[0] is map)
+        && data.glbbAccelRows is list && data.glbbAccelRows.size() <= 50
+        && (data.glbbAccelRows.size() == 0 || data.glbbAccelRows[0] is map)
+        && data.glbbDecelRows is list && data.glbbDecelRows.size() <= 50
+        && (data.glbbDecelRows.size() == 0 || data.glbbDecelRows[0] is map)
+        && data.ans1 is string && data.ans1.size() <= 2000
+        && data.ans2 is string && data.ans2.size() <= 2000
+        && data.ans4 is string && data.ans4.size() <= 2000
+        && data.ans5 is string && data.ans5.size() <= 2000
+        && data.ans6 is string && data.ans6.size() <= 2000
+        && data.conclusion is string && data.conclusion.size() <= 2000
+        && data.status is string && data.status in ['submitted', 'finalized']
+        && data.feedbackStatus is string && data.feedbackStatus in ['pending', 'reviewed']
+        && data.teacherFeedback is string && data.teacherFeedback.size() <= 2000
+        && data.feedbackBy is string && data.feedbackBy.size() <= 120
+        && data.feedbackByUid is string && data.feedbackByUid.size() <= 128
+        && data.feedbackAt is string && data.feedbackAt.size() <= 64
+        && data.submittedAt is string && data.submittedAt.size() <= 64
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidQuizSubmission(data, npsn, resultId) {
+      return data.keys().hasAll([
+          'id', 'npsn', 'studentUid', 'studentAccountId', 'studentName', 'className',
+          'allowedTeacherUids', 'score', 'totalQuestions', 'timeSpentSeconds',
+          'category', 'submittedAt', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'npsn', 'studentUid', 'studentAccountId', 'studentName', 'className',
+          'allowedTeacherUids', 'score', 'totalQuestions', 'timeSpentSeconds',
+          'category', 'submittedAt', 'createdAt'
+        ])
+        && isValidId(data.id) && data.id == resultId
+        && isValidNpsn(data.npsn) && data.npsn == npsn
+        && isValidId(data.studentUid) && data.studentUid == request.auth.uid
+        && isValidId(data.studentAccountId)
+        && data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 120
+        && data.className is string && data.className.size() <= 60
+        && data.allowedTeacherUids is list && data.allowedTeacherUids.size() <= 10
+        && (data.allowedTeacherUids.size() == 0 || (data.allowedTeacherUids[0] is string && data.allowedTeacherUids[0].size() <= 128))
+        && data.score is number && data.score >= 0 && data.score <= 100
+        && data.totalQuestions is number && data.totalQuestions >= 1 && data.totalQuestions <= 100
+        && data.timeSpentSeconds is number && data.timeSpentSeconds >= 0 && data.timeSpentSeconds <= 86400
+        && data.category is string && data.category.size() >= 1 && data.category.size() <= 80
+        && data.submittedAt is string && data.submittedAt.size() <= 64
+        && data.createdAt is timestamp;
+    }
+
+    function isValidStudentReport(data, npsn, accountId) {
+      return data.keys().hasAll([
+          'accountId', 'npsn', 'studentUid', 'studentName', 'className', 'schoolName',
+          'allowedTeacherUids', 'xp', 'level', 'lastQuizScore', 'experimentsCount',
+          'lkpdSubmittedCount', 'badges', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'accountId', 'npsn', 'studentUid', 'studentName', 'className', 'schoolName',
+          'allowedTeacherUids', 'xp', 'level', 'lastQuizScore', 'experimentsCount',
+          'lkpdSubmittedCount', 'badges', 'status', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.accountId) && data.accountId == accountId
+        && isValidNpsn(data.npsn) && data.npsn == npsn
+        && isValidId(data.studentUid)
+        && data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 120
+        && data.className is string && data.className.size() <= 60
+        && data.schoolName is string && data.schoolName.size() <= 150
+        && data.allowedTeacherUids is list && data.allowedTeacherUids.size() <= 10
+        && (data.allowedTeacherUids.size() == 0 || (data.allowedTeacherUids[0] is string && data.allowedTeacherUids[0].size() <= 128))
+        && data.xp is number && data.xp >= 0 && data.xp <= 1000000
+        && data.level is number && data.level >= 1 && data.level <= 500
+        && data.lastQuizScore is number && data.lastQuizScore >= 0 && data.lastQuizScore <= 100
+        && data.experimentsCount is number && data.experimentsCount >= 0 && data.experimentsCount <= 10000
+        && data.lkpdSubmittedCount is number && data.lkpdSubmittedCount >= 0 && data.lkpdSubmittedCount <= 1000
+        && data.badges is list && data.badges.size() <= 20
+        && (data.badges.size() == 0 || (data.badges[0] is string && data.badges[0].size() <= 64))
+        && data.status is string && data.status in ['active', 'archived']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidStudentReflection(data, npsn, reflectionId) {
+      return data.keys().hasAll([
+          'id', 'npsn', 'studentUid', 'studentAccountId', 'studentName', 'className',
+          'allowedTeacherUids', 'date',
+          'ratingGLB', 'ratingGLBB', 'ratingGraph', 'ratingLab', 'mood',
+          'interestingThing', 'challengingThing', 'labExperience', 'nextTarget',
+          'submittedAt', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'npsn', 'studentUid', 'studentAccountId', 'studentName', 'className',
+          'allowedTeacherUids', 'date',
+          'ratingGLB', 'ratingGLBB', 'ratingGraph', 'ratingLab', 'mood',
+          'interestingThing', 'challengingThing', 'labExperience', 'nextTarget',
+          'submittedAt', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id) && data.id == reflectionId
+        && isValidNpsn(data.npsn) && data.npsn == npsn
+        && isValidId(data.studentUid) && data.studentUid == request.auth.uid
+        && isValidId(data.studentAccountId)
+        && data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 120
+        && data.className is string && data.className.size() <= 60
+        && data.allowedTeacherUids is list && data.allowedTeacherUids.size() <= 10
+        && (data.allowedTeacherUids.size() == 0 || (data.allowedTeacherUids[0] is string && data.allowedTeacherUids[0].size() <= 128))
+        && data.date is string && data.date.size() <= 64
+        && data.ratingGLB is number && data.ratingGLB >= 1 && data.ratingGLB <= 5
+        && data.ratingGLBB is number && data.ratingGLBB >= 1 && data.ratingGLBB <= 5
+        && data.ratingGraph is number && data.ratingGraph >= 1 && data.ratingGraph <= 5
+        && data.ratingLab is number && data.ratingLab >= 1 && data.ratingLab <= 5
+        && data.mood is string && data.mood.size() >= 1 && data.mood.size() <= 40
+        && data.interestingThing is string && data.interestingThing.size() <= 2000
+        && data.challengingThing is string && data.challengingThing.size() <= 2000
+        && data.labExperience is string && data.labExperience.size() <= 2000
+        && data.nextTarget is string && data.nextTarget.size() <= 2000
+        && data.submittedAt is string && data.submittedAt.size() <= 64
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLoginLookup(data, lookupId) {
+      return data.keys().hasAll(['lookupId', 'uid', 'role', 'cipherEmail', 'iv', 'salt', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['lookupId', 'uid', 'role', 'cipherEmail', 'iv', 'salt', 'createdAt', 'updatedAt'])
+        && isValidLookupId(data.lookupId) && data.lookupId == lookupId
+        && isValidId(data.uid)
+        && data.role is string && data.role in ['guru', 'murid']
+        && data.cipherEmail is string && data.cipherEmail.size() >= 16 && data.cipherEmail.size() <= 512
+        && data.iv is string && data.iv.size() >= 8 && data.iv.size() <= 64
+        && data.salt is string && data.salt.size() >= 8 && data.salt.size() <= 64
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // =========================================================================
+    // COLLECTION MATCH BLOCKS
+    // =========================================================================
+
+    // Private User Profile (Owner only)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().role == existing().role
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['npsn', 'accountId', 'displayName', 'className', 'email', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // School Workspace Root
+    match /schools/{npsn} {
+      allow get: if isValidNpsn(npsn) && isSchoolMember(npsn);
+      allow list: if isVerifiedUser() && (
+        existing().ownerUid == request.auth.uid ||
+        request.auth.uid in existing().teacherUids
+      );
+      allow create: if isValidNpsn(npsn)
+        && isVerifiedUser()
+        && isValidSchool(incoming(), npsn)
+        && incoming().ownerUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidNpsn(npsn)
+        && isSchoolTeacher(npsn)
+        && isValidSchool(incoming(), npsn)
+        && incoming().npsn == existing().npsn
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['schoolName', 'teacherUids', 'updatedAt']);
+      allow delete: if false;
+
+      // Verified School Members
+      match /members/{memberId} {
+        allow get: if isValidNpsn(npsn) && isValidId(memberId) && (
+          isOwner(memberId) || isSchoolTeacher(npsn)
+        );
+        allow list: if isVerifiedUser() && existing().uid == request.auth.uid;
+        allow create: if isValidNpsn(npsn)
+          && isValidId(memberId)
+          && isOwner(memberId)
+          && schoolExists(npsn)
+          && isValidSchoolMember(incoming(), npsn, memberId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && (!exists(/databases/$(database)/documents/users/$(memberId)) || get(/databases/$(database)/documents/users/$(memberId)).data.role == incoming().role);
+        allow update: if isValidNpsn(npsn)
+          && isValidId(memberId)
+          && isOwner(memberId)
+          && isValidSchoolMember(incoming(), npsn, memberId)
+          && incoming().uid == existing().uid
+          && incoming().npsn == existing().npsn
+          && incoming().role == existing().role
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'className', 'accountId', 'updatedAt']);
+        allow delete: if false;
+      }
+
+      // Collected LKPD Submissions & Two-Way Teacher Feedback
+      match /lkpdSubmissions/{submissionId} {
+        allow get: if isValidNpsn(npsn) && isValidId(submissionId) && isSchoolMember(npsn) && (
+          resource == null || existing().studentUid == request.auth.uid || isSchoolTeacher(npsn)
+        );
+        allow list: if isVerifiedUser() && (
+          existing().studentUid == request.auth.uid ||
+          request.auth.uid in existing().allowedTeacherUids
+        );
+        allow create: if isValidNpsn(npsn)
+          && isValidId(submissionId)
+          && isSchoolMember(npsn)
+          && isValidLKPDSubmission(incoming(), npsn, submissionId)
+          && incoming().studentUid == request.auth.uid
+          && incoming().status == 'submitted'
+          && incoming().feedbackStatus == 'pending'
+          && incoming().teacherFeedback == ''
+          && incoming().feedbackBy == ''
+          && incoming().feedbackByUid == ''
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidNpsn(npsn)
+          && isValidId(submissionId)
+          && isValidLKPDSubmission(incoming(), npsn, submissionId)
+          && existing().status != 'finalized'
+          && incoming().id == existing().id
+          && incoming().npsn == existing().npsn
+          && incoming().studentUid == existing().studentUid
+          && incoming().studentAccountId == existing().studentAccountId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            // Tier 1: Student Owner edits own LKPD answers/rows (cannot alter feedback fields)
+            (
+              existing().studentUid == request.auth.uid &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'allowedTeacherUids', 'title', 'groupName', 'groupLeader', 'members',
+                'className', 'school', 'date', 'labMode',
+                'glbRows', 'glbbAccelRows', 'glbbDecelRows',
+                'ans1', 'ans2', 'ans4', 'ans5', 'ans6', 'conclusion',
+                'submittedAt', 'updatedAt'
+              ])
+            ) ||
+            // Tier 2: Verified School Teacher writes Umpan Balik (cannot alter student answers)
+            (
+              isSchoolTeacher(npsn) &&
+              incoming().feedbackByUid == request.auth.uid &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'teacherFeedback', 'feedbackBy', 'feedbackByUid', 'feedbackAt', 'feedbackStatus', 'updatedAt'
+              ])
+            )
+          );
+        allow delete: if isValidNpsn(npsn) && isValidId(submissionId) && isSchoolTeacher(npsn);
+      }
+
+      // Synced Student Quiz Results
+      match /quizResults/{resultId} {
+        allow get: if isValidNpsn(npsn) && isValidId(resultId) && isSchoolMember(npsn) && (
+          resource == null || existing().studentUid == request.auth.uid || isSchoolTeacher(npsn)
+        );
+        allow list: if isVerifiedUser() && (
+          existing().studentUid == request.auth.uid ||
+          request.auth.uid in existing().allowedTeacherUids
+        );
+        allow create: if isValidNpsn(npsn)
+          && isValidId(resultId)
+          && isSchoolMember(npsn)
+          && isValidQuizSubmission(incoming(), npsn, resultId)
+          && incoming().createdAt == request.time;
+        allow update: if false;
+        allow delete: if isValidNpsn(npsn) && isValidId(resultId) && isSchoolTeacher(npsn);
+      }
+
+      // Synced Student Learning Report Cards
+      match /studentReports/{accountId} {
+        allow get: if isValidNpsn(npsn) && isValidId(accountId) && isSchoolMember(npsn) && (
+          resource == null || existing().studentUid == request.auth.uid || isSchoolTeacher(npsn)
+        );
+        allow list: if isVerifiedUser() && (
+          existing().studentUid == request.auth.uid ||
+          request.auth.uid in existing().allowedTeacherUids
+        );
+        allow create: if isValidNpsn(npsn)
+          && isValidId(accountId)
+          && isSchoolMember(npsn)
+          && isValidStudentReport(incoming(), npsn, accountId)
+          && incoming().studentUid == request.auth.uid
+          && incoming().status == 'active'
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidNpsn(npsn)
+          && isValidId(accountId)
+          && isValidStudentReport(incoming(), npsn, accountId)
+          && existing().status != 'archived'
+          && existing().studentUid == request.auth.uid
+          && incoming().accountId == existing().accountId
+          && incoming().npsn == existing().npsn
+          && incoming().studentUid == existing().studentUid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'studentName', 'className', 'schoolName', 'allowedTeacherUids',
+            'xp', 'level', 'lastQuizScore', 'experimentsCount', 'lkpdSubmittedCount',
+            'badges', 'updatedAt'
+          ]);
+        allow delete: if isValidNpsn(npsn) && isValidId(accountId) && isSchoolTeacher(npsn);
+      }
+
+      // Collected Student Learning Reflections
+      match /reflections/{reflectionId} {
+        allow get: if isValidNpsn(npsn) && isValidId(reflectionId) && isSchoolMember(npsn) && (
+          resource == null || existing().studentUid == request.auth.uid || isSchoolTeacher(npsn)
+        );
+        allow list: if isVerifiedUser() && (
+          existing().studentUid == request.auth.uid ||
+          request.auth.uid in existing().allowedTeacherUids
+        );
+        allow create: if isValidNpsn(npsn)
+          && isValidId(reflectionId)
+          && isSchoolMember(npsn)
+          && isValidStudentReflection(incoming(), npsn, reflectionId)
+          && incoming().studentUid == request.auth.uid
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidNpsn(npsn)
+          && isValidId(reflectionId)
+          && isSchoolMember(npsn)
+          && isValidStudentReflection(incoming(), npsn, reflectionId)
+          && existing().studentUid == request.auth.uid
+          && incoming().id == existing().id
+          && incoming().npsn == existing().npsn
+          && incoming().studentUid == existing().studentUid
+          && incoming().studentAccountId == existing().studentAccountId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'studentName', 'className', 'allowedTeacherUids', 'date',
+            'ratingGLB', 'ratingGLBB', 'ratingGraph', 'ratingLab', 'mood',
+            'interestingThing', 'challengingThing', 'labExperience', 'nextTarget',
+            'submittedAt', 'updatedAt'
+          ]);
+        allow delete: if isValidNpsn(npsn) && isValidId(reflectionId) && isSchoolTeacher(npsn);
+      }
+    }
+
+    // Password-encrypted Login Lookup (Exact-key get only, no list, zero plaintext PII)
+    match /loginLookup/{lookupId} {
+      allow get: if isValidLookupId(lookupId);
+      allow list: if false;
+      allow create: if isValidLookupId(lookupId)
+        && isVerifiedUser()
+        && isValidLoginLookup(incoming(), lookupId)
+        && incoming().uid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidLookupId(lookupId)
+        && isVerifiedUser()
+        && isValidLoginLookup(incoming(), lookupId)
+        && existing().uid == request.auth.uid
+        && incoming().uid == existing().uid
+        && incoming().role == existing().role
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['cipherEmail', 'iv', 'salt', 'updatedAt']);
+      allow delete: if isValidLookupId(lookupId)
+        && isVerifiedUser()
+        && existing().uid == request.auth.uid;
+    }
+  }
+}

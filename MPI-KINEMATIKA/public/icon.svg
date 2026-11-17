@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0f1d" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#22d3ee" />
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ea580c" />
+      <stop offset="100%" stop-color="#f97316" />
+    </linearGradient>
+    <filter id="glowCyan" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <filter id="glowOrange" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle with border -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="124" fill="none" stroke="#38bdf8" stroke-opacity="0.25" stroke-width="4" />
+
+  <!-- Grid Tech Pattern subtle -->
+  <g opacity="0.15" stroke="#38bdf8" stroke-width="1.5">
+    <line x1="80" y1="120" x2="432" y2="120" stroke-dasharray="6,6" />
+    <line x1="80" y1="200" x2="432" y2="200" stroke-dasharray="6,6" />
+    <line x1="80" y1="280" x2="432" y2="280" stroke-dasharray="6,6" />
+    <line x1="80" y1="360" x2="432" y2="360" stroke-dasharray="6,6" />
+    <line x1="160" y1="80" x2="160" y2="432" stroke-dasharray="6,6" />
+    <line x1="256" y1="80" x2="256" y2="432" stroke-dasharray="6,6" />
+    <line x1="352" y1="80" x2="352" y2="432" stroke-dasharray="6,6" />
+  </g>
+
+  <!-- Track 1: GLB Constant velocity (Cyan linear track) -->
+  <path d="M 90 200 L 420 200" stroke="#0e7490" stroke-width="8" stroke-linecap="round" />
+  <!-- Equidistant interval ticks (GLB: v constant, dx constant) -->
+  <circle cx="120" cy="200" r="5" fill="#22d3ee" />
+  <circle cx="180" cy="200" r="5" fill="#22d3ee" />
+  <circle cx="240" cy="200" r="5" fill="#22d3ee" />
+  <circle cx="300" cy="200" r="5" fill="#22d3ee" />
+  <circle cx="360" cy="200" r="5" fill="#22d3ee" />
+  
+  <!-- GLB Cart / Capsule Object (Cyan) -->
+  <g filter="url(#glowCyan)">
+    <rect x="330" y="174" width="64" height="34" rx="8" fill="url(#cyanGrad)" />
+    <!-- Wheel base -->
+    <circle cx="344" cy="208" r="8" fill="#0f172a" stroke="#22d3ee" stroke-width="3" />
+    <circle cx="380" cy="208" r="8" fill="#0f172a" stroke="#22d3ee" stroke-width="3" />
+    <!-- Window / Sensor -->
+    <rect x="350" y="180" width="24" height="12" rx="4" fill="#ecfeff" opacity="0.9" />
+    <!-- Constant velocity vector arrow -->
+    <path d="M 400 191 L 436 191 M 428 184 L 438 191 L 428 198" stroke="#22d3ee" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+  <text x="100" y="175" fill="#22d3ee" font-family="'JetBrains Mono', monospace" font-size="18" font-weight="700" letter-spacing="2">GLB: v = KONSTAN</text>
+
+  <!-- Track 2: GLBB Accelerated motion (Orange accelerating track with curved dynamic flare) -->
+  <path d="M 90 320 L 420 320" stroke="#9a3412" stroke-width="8" stroke-linecap="round" />
+  <!-- Expanding interval ticks (GLBB: increasing dx = v0*t + 0.5*a*t^2) -->
+  <circle cx="110" cy="320" r="4" fill="#fb923c" />
+  <circle cx="135" cy="320" r="5" fill="#fb923c" />
+  <circle cx="175" cy="320" r="6" fill="#fb923c" />
+  <circle cx="230" cy="320" r="7" fill="#fb923c" />
+  <circle cx="305" cy="320" r="8" fill="#fb923c" />
+
+  <!-- GLBB Cart / Rocket Cart (Orange) -->
+  <g filter="url(#glowOrange)">
+    <path d="M 330 306 L 390 306 Q 404 316 390 326 L 330 326 Z" fill="url(#orangeGrad)" />
+    <!-- Wheels -->
+    <circle cx="345" cy="326" r="8" fill="#0f172a" stroke="#f97316" stroke-width="3" />
+    <circle cx="380" cy="326" r="8" fill="#0f172a" stroke="#f97316" stroke-width="3" />
+    <!-- Thruster / Acceleration lines -->
+    <path d="M 324 310 L 305 316 L 324 322 Z" fill="#fde047" />
+    <!-- Accelerated vector (longer double arrow) -->
+    <path d="M 400 316 L 444 316 M 434 309 L 446 316 L 434 323" stroke="#f97316" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M 408 304 L 436 304 M 428 299 L 438 304 L 428 309" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+  <text x="100" y="295" fill="#fb923c" font-family="'JetBrains Mono', monospace" font-size="18" font-weight="700" letter-spacing="2">GLBB: a = KONSTAN</text>
+
+  <!-- Central Lab Crest & Title -->
+  <text x="256" y="420" text-anchor="middle" fill="#f8fafc" font-family="'Plus Jakarta Sans', sans-serif" font-size="34" font-weight="800" letter-spacing="6">PHYSICS MOTION LAB</text>
+  <text x="256" y="448" text-anchor="middle" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="15" font-weight="600" letter-spacing="4">SMA KELAS X • FASE E</text>
+
+  <!-- Atomic / Orbit Icon Center Top -->
+  <ellipse cx="256" cy="90" rx="36" ry="14" fill="none" stroke="#38bdf8" stroke-width="2.5" transform="rotate(-25 256 90)" />
+  <ellipse cx="256" cy="90" rx="36" ry="14" fill="none" stroke="#f97316" stroke-width="2.5" transform="rotate(25 256 90)" />
+  <circle cx="256" cy="90" r="7" fill="#67e8f9" />
+</svg>
